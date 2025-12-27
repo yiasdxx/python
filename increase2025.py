@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import random
 
-
 class CutMix:
     """CutMix数据增强"""
 
@@ -11,17 +10,6 @@ class CutMix:
         self.prob = prob
 
     def __call__(self, images, labels):
-        """
-        对批次数据应用CutMix增强
-
-        Args:
-            images: 图像批次 (N, C, H, W)
-            labels: 标签批次 (N, num_classes) one-hot编码
-
-        Returns:
-            mixed_images: 混合后的图像
-            mixed_labels: 混合后的标签
-        """
         if np.random.random() > self.prob:
             return images, labels
 
@@ -65,7 +53,7 @@ class CutMix:
         area = (x2 - x1) * (y2 - y1)
         lam = 1. - area / (H * W)
 
-        mixed_labels = labels * lam + labels[indices] * (1. - lam)
+        mixed_labels = labels * lam + labels[indices] * (1. - lam)#软标签（不使用）
 
         return mixed_images, mixed_labels
 
@@ -202,10 +190,6 @@ class DataAugmentor:
         return image_with_holes
 
     def augment_single_image(self, image):
-        """
-        对单张图片进行增强
-        注意：输入图像应该是uint8格式，0-255范围
-        """
         aug_image = image.copy()
 
         # 应用各种增强方法（按合理顺序）

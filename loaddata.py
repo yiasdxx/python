@@ -1,18 +1,11 @@
-# loaddata.py
-
 import os
 import cv2
 import numpy as np
 
 
 def load_dataset(dataset_path, img_size):
-    """
-    数据加载器 - 纯NumPy实现
-    返回: (训练图片, 训练标签), (验证图片, 验证标签), 类别列表
-    """
 
     def load_folder(folder_path):
-        """加载单个文件夹的所有图片"""
         images = []
         labels = []
         classes = []

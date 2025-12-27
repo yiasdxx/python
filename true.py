@@ -1,7 +1,5 @@
-# main.py
 import numpy as np
 import pickle
-# import os
 from loaddata import load_dataset
 from conv import SimpleConvNet, Trainer
 
@@ -107,10 +105,8 @@ def main():
     save_model(network, input_dim, num_classes, 'simple_convnet_model.pkl',class_names)
 
 def save_model(network, input_dim, num_classes, filename, class_names):
-    """保存模型（简化版）"""
     # 收集参数
     model_params = network.params
-
     # 收集BN参数
     bn_params = {}
     if hasattr(network, 'layers'):

@@ -1,14 +1,8 @@
-# conv.py
-
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import OrderedDict
 
-
 def im2col(input_data, filter_h, filter_w, stride=1, pad=1):
-    """
-    将4D输入数据转换为2D矩阵
-    """
     N, C, H, W = input_data.shape
     out_h = (H + 2 * pad - filter_h) // stride + 1
     out_w = (W + 2 * pad - filter_w) // stride + 1
@@ -31,9 +25,6 @@ def im2col(input_data, filter_h, filter_w, stride=1, pad=1):
 
 
 def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=1):
-    """
-    将2D矩阵转换回4D数据
-    """
     N, C, H, W = input_shape
     out_h = (H + 2 * pad - filter_h) // stride + 1
     out_w = (W + 2 * pad - filter_w) // stride + 1
@@ -52,7 +43,6 @@ def col2im(col, input_shape, filter_h, filter_w, stride=1, pad=1):
 
 
 def softmax(x):
-    """Softmax函数"""
     if x.ndim == 2:
         x = x - x.max(axis=1, keepdims=True)
         x = np.exp(x)
@@ -64,7 +54,6 @@ def softmax(x):
 
 
 def cross_entropy_error(y, t):
-    """交叉熵误差"""
     if y.ndim == 1:
         t = t.reshape(1, t.size)
         y = y.reshape(1, y.size)
@@ -82,19 +71,16 @@ def cross_entropy_error(y, t):
 
 
 def relu(x):
-    """ReLU激活函数"""
     return np.maximum(0, x)
 
 
 def relu_grad(x):
-    """ReLU梯度"""
     grad = np.zeros_like(x)
     grad[x > 0] = 1
     return grad
 
-
+# 批归一化
 class BatchNormalization:
-    """批归一化层"""
 
     def __init__(self, gamma, beta, momentum=0.9, running_mean=None, running_var=None):
         self.gamma = gamma
@@ -130,11 +116,11 @@ class BatchNormalization:
             self.running_var = np.zeros(D)
 
         if train_flg:
-            mu = x.mean(axis=0)
-            xc = x - mu
-            var = np.mean(xc ** 2, axis=0)
-            std = np.sqrt(var + 1e-7)
-            xn = xc / std
+            mu = x.mean(axis=0)#均值
+            xc = x - mu#减去均值,中心化
+            var = np.mean(xc ** 2, axis=0)#方差
+            std = np.sqrt(var + 1e-7)#标准差
+            xn = xc / std#标准化
 
             self.batch_size = x.shape[0]
             self.xc = xc
@@ -178,7 +164,6 @@ class BatchNormalization:
 
 
 class Convolution:
-    """卷积层"""
 
     def __init__(self, W, b, stride=1, pad=1):
         self.W = W  # 滤波器权重 (FN, C, FH, FW)
@@ -226,8 +211,6 @@ class Convolution:
 
 
 class Pooling:
-    """池化层"""
-
     def __init__(self, pool_h, pool_w, stride=2, pad=0):
         self.pool_h = pool_h
         self.pool_w = pool_w
@@ -267,8 +250,6 @@ class Pooling:
 
 
 class Affine:
-    """全连接层"""
-
     def __init__(self, W, b):
         self.W = W
         self.b = b
@@ -293,8 +274,6 @@ class Affine:
 
 
 class Relu:
-    """ReLU激活层"""
-
     def __init__(self):
         self.mask = None
 
@@ -310,8 +289,6 @@ class Relu:
 
 
 class SoftmaxWithLoss:
-    """Softmax与损失层"""
-
     def __init__(self):
         self.loss = None
         self.y = None
@@ -323,7 +300,7 @@ class SoftmaxWithLoss:
 
         # 处理标签格式
         if self.t.ndim == 2 and self.t.shape[1] > 1:
-            self.t = self.t.argmax(axis=1)
+            self.t = self.t.argmax(axis=1)#666使用硬标签版cutmix
         self.t = self.t.astype(np.int64).flatten()
 
         self.loss = cross_entropy_error(self.y, self.t)
@@ -338,8 +315,6 @@ class SoftmaxWithLoss:
 
 
 class Dropout:
-    """Dropout层"""
-
     def __init__(self, dropout_ratio=0.5):
         self.dropout_ratio = dropout_ratio
         self.mask = None
@@ -356,8 +331,6 @@ class Dropout:
 
 
 class Adam:
-    """Adam优化器"""
-
     def __init__(self, lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8):
         self.lr = lr
         self.beta1 = beta1
@@ -389,7 +362,6 @@ class Adam:
 
 
 class SimpleConvNet:
-    """简单的卷积神经网络"""
 
     def __init__(self, input_dim=(3, 64, 64),
                  conv1_param={'filter_num': 16, 'filter_size': 3, 'pad': 1, 'stride': 1},
@@ -485,7 +457,6 @@ class SimpleConvNet:
         self.last_layer = SoftmaxWithLoss()
 
     def predict(self, x, train_flg=False):
-        """前向传播预测"""
         for key, layer in self.layers.items():
             if 'BatchNorm' in key or 'Dropout' in key:
                 x = layer.forward(x, train_flg)
@@ -494,12 +465,10 @@ class SimpleConvNet:
         return x
 
     def loss(self, x, t):
-        """计算损失"""
         y = self.predict(x, train_flg=True)
         return self.last_layer.forward(y, t)
 
     def accuracy(self, x, t, batch_size=100):
-        """计算准确率"""
         if t.ndim != 1:
             t = np.argmax(t, axis=1)
 
@@ -509,24 +478,23 @@ class SimpleConvNet:
         acc = 0.0
         for i in range(0, x.shape[0], batch_size):
             tx = x[i:i + batch_size]
-            tt = t[i:i + batch_size]
-            y = self.predict(tx, train_flg=False)
+            tt = t[i:i + batch_size]# 真实标签
+            y = self.predict(tx, train_flg=False)# 预测
             y = np.argmax(y, axis=1)
             acc += np.sum(y == tt)
 
         return acc / x.shape[0]
 
-    def gradient(self, x, t):
-        """计算梯度"""
+    def gradient_and_loss(self, x, t):
         # 前向传播
-        self.loss(x, t)
+        loss = self.loss(x, t)
 
         # 反向传播
         dout = 1
         dout = self.last_layer.backward(dout)
 
         layers = list(self.layers.values())
-        layers.reverse()
+        layers.reverse()#反转列表
         for layer in layers:
             dout = layer.backward(dout)
 
@@ -549,12 +517,10 @@ class SimpleConvNet:
             grads['gamma3'] = self.layers['BatchNorm3'].dgamma
             grads['beta3'] = self.layers['BatchNorm3'].dbeta
 
-        return grads
+        return grads,loss
 
 
 class Trainer:
-    """只有训练集和验证集的训练器"""
-
     def __init__(self, network, x_train, t_train, x_val, t_val,
                  epochs=20, batch_size=100, optimizer='adam', learning_rate=0.001,
                  use_augmentation=True, use_cutmix=True, cutmix_alpha=1.0, cutmix_prob=0.5, patience=100,
@@ -665,7 +631,7 @@ class Trainer:
 
         x_augmented = np.array(augmented_batch)
 
-        # 应用CutMix增强（如果需要）
+        # 应用CutMix增强
         if self.use_cutmix and t_batch is not None and t_batch.ndim == 2:  # 需要one-hot标签
             try:
                 x_augmented, t_batch = self.augmenter.apply_cutmix(x_augmented, t_batch)
@@ -675,8 +641,8 @@ class Trainer:
 
         return x_augmented, t_batch
 
+    # 检查增强使用情况
     def check_augmentation_condition(self, train_acc):
-        """检查是否满足启用数据增强的条件"""
         if not self.use_augmentation or self.aug_enabled:
             return
 
@@ -704,7 +670,9 @@ class Trainer:
             x_batch, t_batch = self.augment_batch(x_batch, t_batch)
 
         # 计算梯度
-        grads = self.network.gradient(x_batch, t_batch)
+        #此处避免重复调用前向传播
+        grads, loss = self.network.gradient_and_loss(x_batch, t_batch)#调用gradient->调用loss->调用predict,返回时调用forward
+        self.train_loss_list.append(loss)
 
         # 更新参数
         if self.optimizer_type == 'adam':
@@ -712,10 +680,6 @@ class Trainer:
         else:
             for key in grads.keys():
                 self.network.params[key] -= self.lr * grads[key]
-
-        # 计算损失
-        loss = self.network.loss(x_batch, t_batch)
-        self.train_loss_list.append(loss)
 
         # 每个epoch结束时计算准确率
         if self.current_iter % self.iter_per_epoch == 0:
@@ -804,7 +768,6 @@ class Trainer:
         return self.train_loss_list, self.train_acc_list, self.val_acc_list
 
     def plot_training_history(self):
-        """绘制训练历史"""
         plt.figure(figsize=(12, 4))
 
         # 损失曲线
